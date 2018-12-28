@@ -1,6 +1,4 @@
-
 from flask import Flask
-from flask_sslify import SSLify
 from flask import request
 import telebot
 import requests
@@ -9,11 +7,11 @@ from lxml import html
 import os
 import time
 import flask
-
+import re
+import sys
+from token import TOKEN
 
 app = Flask(__name__)
-sslify = SSLify(app)
-TOKEN = '460119009:AAFbL_pJJtqBaBMMjODKYPS-7Xk_p_swS1M'
 bot = telebot.TeleBot(TOKEN, threaded=False)
 
 
@@ -32,65 +30,87 @@ def webhook():
 @bot.message_handler(content_types=['text'])
 def handle_start(message):
 
+    #check if url is valid 
+    if re.match(r'https:\/\/*.*\.bandcamp\.com\/track\/*.*', message.text):
+        
+        url = message.text
 
-    #url = 'https://mountainmanrecords.bandcamp.com/track/solitude'
+        try:    
+            response = requests.get(url)
+            tree = html.fromstring(response.content)
+            #get song cover
+            cover_url = tree.xpath('//img[@itemprop="image"]/@src')[0]
+            #get song and artist from metadata
+            meta = tree.xpath('//meta[@name="title"]/@content')[0]
 
-    url = message.text
-
-    response = requests.get(url)
-    tree = html.fromstring(response.content)
-
-    cover_url = tree.xpath('//img[@itemprop="image"]/@src')[0]
-    meta = tree.xpath('//meta[@name="title"]/@content')[0]
-
-    response = response.text
-    audio_url = response.split('"file":{"mp3-128":"')[-1].split('"}')[0]
-    meta = meta.split(", by ")
-    track = meta[0]
-    artist = meta[1]
-    tmp_file = response.split('/mp3-128/')[-1].split('?')[0]
-
-
-
-    dirc = '/home/vlstv/%s' % artist
-    os.mkdir(dirc)
-
-    try:
-        wgetter.download(audio_url, outdir='/home/vlstv/%s' % artist)
-    except:
-        #send error message
-        print('error')
-
-    old_file = '%s/%s' % (dirc, tmp_file)
-    new_file = '%s/%s - %s.mp3' % (dirc, artist, track)
+            response = response.text
+            #get audio url
+            audio_url = response.split('"file":{"mp3-128":"')[-1].split('"}')[0]
+            meta = meta.split(", by ")
+            track = meta[0] #track name
+            artist = meta[1] #artist name
+            tmp_file = response.split('/mp3-128/')[-1].split('?')[0]
+        except:
+	    sys.exit()
 
 
-    try:
-        wgetter.download(cover_url, outdir='/home/vlstv/%s' % artist)
-    except:
-        print('error')
+        dirc = '/home/vlstv/%s' % artist
+        #create artists's dir
+        try:
+            os.mkdir(dirc)
+            #download audio to created dir
+            wgetter.download(audio_url, outdir='/home/vlstv/%s' % artist)
+        except:
+            bot.send_message(message.chat.id, 'error occured while downloading track')
 
-    os.rename(old_file, new_file)
-
-    #send files to chat
-    files = os.listdir(dirc)
-    for file_path in files:
-        if '.mp3' not in file_path:
-            img_url = '%s/%s' % (dirc, file_path)
-
-    #send cover
-    file = open(img_url, 'rb')
-    bot.send_photo(message.chat.id, file)
-    os.remove(img_url)
-
-    #send audio
-    file = open(new_file, 'rb')
-    bot.send_audio(message.chat.id, file)
-    os.remove(new_file)
-    os.rmdir(dirc)
+        old_file = '%s/%s' % (dirc, tmp_file)
+        #create new name for downloaded file
+        new_file = '%s/%s - %s.mp3' % (dirc, artist, track)
 
 
+        try:
+            #download song cover
+            wgetter.download(cover_url, outdir='/home/vlstv/%s' % artist)
+        except:
+            bot.send_message(message.chat.id, 'error occured while downloading image')
+        #rename audio file
+        os.rename(old_file, new_file)
+
+        #send files to chat
+        files = os.listdir(dirc)
+        for file_path in files:
+            if '.mp3' not in file_path:
+                img_url = '%s/%s' % (dirc, file_path)
+
+        #send cover
+        try:
+            file = open(img_url, 'rb')
+            bot.send_photo('@slpcrs', file)
+            #delete cover after sending
+            os.remove(img_url)
+
+            #send audio
+            file = open(new_file, 'rb')
+            bot.send_audio('@slpcrs', file)
+            #delete audio and folser after sending 
+            os.remove(new_file)
+            os.rmdir(dirc)
+        except:
+            try:
+                #delete all files if upload fails 
+                os.remove(img_url)
+                os.remove(new_file)
+                os.rmdir(dirc)
+            except:
+                print('upload failed')
+
+
+    else:
+        bot.send_message(message.chat.id, 'url is not valid')
+
+
+bot.set_webhook('https://shmuli.tk/sleepycurse')
 
 if __name__ == '__main__':
-    #app.run(ssl_context=('/etc/letsencrypt/live/shmuli.tk/fullchain.pem', '/etc/letsencrypt/live/shmuli.tk/privkey.pem'))
+    app.run(ssl_context=('/etc/letsencrypt/live/shmuli.tk/fullchain.pem', '/etc/letsencrypt/live/shmuli.tk/privkey.pem'))
     app.run()
