@@ -10,6 +10,7 @@ import flask
 import re
 import sys
 from token import TOKEN
+from mutagen.easyid3 import EasyID3
 
 app = Flask(__name__)
 bot = telebot.TeleBot(TOKEN, threaded=False)
@@ -75,6 +76,10 @@ def handle_start(message):
             bot.send_message(message.chat.id, 'error occured while downloading image')
         #rename audio file
         os.rename(old_file, new_file)
+	
+	audiofile = EasyID3(new_file)
+	audiofile['artist'] = artist
+	audiofile.save()
 
         #send files to chat
         files = os.listdir(dirc)
