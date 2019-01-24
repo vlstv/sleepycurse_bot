@@ -76,10 +76,13 @@ def handle_start(message):
             bot.send_message(message.chat.id, 'error occured while downloading image')
         #rename audio file
         os.rename(old_file, new_file)
-	
-	audiofile = EasyID3(new_file)
-	audiofile['artist'] = artist
-	audiofile.save()
+        
+        try:
+            audiofile = EasyID3(new_file)
+            audiofile['artist'] = artist
+            audiofile.save()
+        except:
+            pass
 
         #send files to chat
         files = os.listdir(dirc)
