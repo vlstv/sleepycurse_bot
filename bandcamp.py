@@ -10,6 +10,7 @@ import flask
 import re
 import sys
 from token import TOKEN
+import mutagen
 from mutagen.easyid3 import EasyID3
 
 app = Flask(__name__)
@@ -79,10 +80,11 @@ def handle_start(message):
         
         try:
             audiofile = EasyID3(new_file)
+        except mutagen.id3.ID3NoHeaderError:
+            audiofile = mutagen.File(new_file, easy=True)
+            audiofile.add_tags()
             audiofile['artist'] = artist
             audiofile.save()
-        except:
-            pass
 
         #send files to chat
         files = os.listdir(dirc)
