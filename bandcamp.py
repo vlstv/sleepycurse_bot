@@ -9,8 +9,9 @@ import time
 import flask
 import re
 import sys
-from token import TOKEN
+import mutagen
 from mutagen.easyid3 import EasyID3
+from token import TOKEN
 
 app = Flask(__name__)
 bot = telebot.TeleBot(TOKEN, threaded=False)
@@ -65,7 +66,7 @@ def handle_start(message):
             bot.send_message(message.chat.id, 'error occured while downloading track')
 
         old_file = '%s/%s' % (dirc, tmp_file)
-        #create new name for downloaded file
+        #create new name for downloaded file:
         new_file = '%s/%s - %s.mp3' % (dirc, artist, track)
 
 
@@ -80,9 +81,14 @@ def handle_start(message):
         try:
             audiofile = EasyID3(new_file)
             audiofile['artist'] = artist
+            audiofile['title'] = track
             audiofile.save()
-        except:
-            pass
+        except mutagen.id3.ID3NoHeaderError:
+            audiofile = mutagen.File(new_file, easy=True)
+            audiofile.add_tags()
+            audiofile['artist'] = artist
+            audiofile['title'] = track
+            audiofile.save()
 
         #send files to chat
         files = os.listdir(dirc)
