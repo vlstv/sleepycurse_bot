@@ -11,7 +11,7 @@ import re
 import sys
 import mutagen
 from mutagen.easyid3 import EasyID3
-from token import TOKEN
+from local_settings import TOKEN
 
 app = Flask(__name__)
 bot = telebot.TeleBot(TOKEN, threaded=False)
