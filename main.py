@@ -11,7 +11,7 @@ import re
 import sys
 import mutagen
 from mutagen.easyid3 import EasyID3
-from local_settings import TOKEN
+from local_settings import *
 
 app = Flask(__name__)
 bot = telebot.TeleBot(TOKEN, threaded=False)
@@ -53,12 +53,12 @@ def handle_start(message):
 	    sys.exit()
 
 
-        dirc = '/home/vlstv/%s' % artist
+        dirc = UPLOAD_DIR + artist
         #create artists's dir
         try:
             os.mkdir(dirc)
             #download audio to created dir
-            wgetter.download(audio_url, outdir='/home/vlstv/%s' % artist)
+            wgetter.download(audio_url, outdir=dirc)
         except:
             bot.send_message(message.chat.id, 'error occured while downloading track')
 
@@ -69,7 +69,7 @@ def handle_start(message):
 
         try:
             #download song cover
-            wgetter.download(cover_url, outdir='/home/vlstv/%s' % artist)
+            wgetter.download(cover_url, outdir=dirc)
         except:
             bot.send_message(message.chat.id, 'error occured while downloading image')
         #rename audio file
@@ -96,13 +96,13 @@ def handle_start(message):
         #send cover
         try:
             file = open(img_url, 'rb')
-            bot.send_photo('@slpcrs', file)
+            bot.send_photo(BOT_TAG', file)
             #delete cover after sending
             os.remove(img_url)
 
             #send audio
             file = open(new_file, 'rb')
-            bot.send_audio('@slpcrs', file)
+            bot.send_audio(BOT_TAG, file)
             #delete audio and folser after sending 
             os.remove(new_file)
             os.rmdir(dirc)
@@ -120,8 +120,8 @@ def handle_start(message):
         bot.send_message(message.chat.id, 'url is not valid')
 
 
-bot.set_webhook('https://shmuli.tk/sleepycurse')
+bot.set_webhook(WEBHOOK_URL)
 
 if __name__ == '__main__':
-    app.run(ssl_context=('/etc/letsencrypt/live/shmuli.tk/fullchain.pem', '/etc/letsencrypt/live/shmuli.tk/privkey.pem'))
+    app.run(ssl_context=(SSL_FULLCHAIN, SSL_PRIVKEY))
     app.run()
