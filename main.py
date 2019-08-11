@@ -96,7 +96,7 @@ def handle_start(message):
         #send cover
         try:
             file = open(img_url, 'rb')
-            bot.send_photo(BOT_TAG', file)
+            bot.send_photo(BOT_TAG, file)
             #delete cover after sending
             os.remove(img_url)
 
