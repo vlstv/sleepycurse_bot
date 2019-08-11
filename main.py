@@ -16,8 +16,6 @@ from local_settings import TOKEN
 app = Flask(__name__)
 bot = telebot.TeleBot(TOKEN, threaded=False)
 
-
-
 @app.route('/', methods=['POST','GET'])
 def webhook():
     if flask.request.headers.get('content-type') == 'application/json':
@@ -27,7 +25,6 @@ def webhook():
         return ''
     else:
         flask.abort(403)
-
 
 @bot.message_handler(content_types=['text'])
 def handle_start(message):
